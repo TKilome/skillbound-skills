@@ -1,0 +1,30 @@
+[
+  {
+    "name": "kubernetes start routes to implemented provider",
+    "prompt": "Start a Flink job on Kubernetes namespace data-flink.",
+    "expected_provider": "kubernetes",
+    "expected_behavior": "load references/providers/kubernetes.md and run readiness flow before mutation"
+  },
+  {
+    "name": "yarn start routes to implemented application provider",
+    "prompt": "Start a Flink job on YARN queue production.",
+    "expected_provider": "yarn",
+    "expected_behavior": "load references/providers/yarn.md and collect YARN application mode inputs before mutation"
+  },
+  {
+    "name": "missing provider asks for deployment target",
+    "prompt": "Start this Flink application jar.",
+    "expected_behavior": "ask for deployment target before provider-specific parameters"
+  },
+  {
+    "name": "common rest status does not require provider",
+    "prompt": "Get status from JobManager REST http://jm:8081 for job job-1.",
+    "expected_command": "get_job_status",
+    "expected_provider_required": false
+  },
+  {
+    "name": "unknown provider is unsupported",
+    "prompt": "Start a Flink job on standalone provider.",
+    "expected_error_code": "UnsupportedProvider"
+  }
+]

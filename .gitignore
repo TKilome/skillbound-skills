@@ -1,0 +1,24 @@
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated files
+target/
+build/
+dist/
+.gradle/
+__pycache__/
+*.py[cod]
+*.log
+*.zip
+
+# Runtime data
+var/

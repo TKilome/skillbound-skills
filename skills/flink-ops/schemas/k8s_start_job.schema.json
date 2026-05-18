@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "k8s_start_job",
+  "type": "object",
+  "required": ["name", "namespace", "serviceAccount", "flinkImage", "jarUri", "parallelism"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "jarUri": {"type": "string", "minLength": 1},
+    "mainClass": {"type": "string"},
+    "args": {"type": "string"},
+    "parallelism": {"type": "integer", "minimum": 1},
+    "dynamicProperties": {"type": "string"},
+    "namespace": {"type": "string", "minLength": 1},
+    "serviceAccount": {"type": "string", "minLength": 1},
+    "flinkImage": {"type": "string", "minLength": 1},
+    "enableIngress": {"type": "boolean"},
+    "flinkHome": {"type": "string"},
+    "jobmanagerMemory": {"type": "string"},
+    "taskmanagerMemory": {"type": "string"},
+    "taskmanagerSlots": {"type": "integer", "minimum": 1},
+    "savepointPath": {"type": "string", "description": "Optional restore path."},
+    "jobManagerUrl": {"type": "string", "description": "Optional read-back verification URL after start."},
+    "jobId": {"type": "string", "description": "Optional job ID for read-back verification after start."},
+    "httpHostHeader": {"type": "string", "description": "Optional HTTP Host header for read-back verification through NodePort or ingress."},
+    "verify": {"type": "boolean", "description": "Read back JobManager REST after submission and report whether the target appears healthy."},
+    "expectedTargetLock": {"type": "string", "description": "Optional target fingerprint from a prior dry-run. Mismatch fails with TargetLockMismatch."},
+    "confirm": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

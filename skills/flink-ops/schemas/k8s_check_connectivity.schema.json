@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "k8s_check_connectivity",
+  "type": "object",
+  "required": ["namespace", "serviceAccount"],
+  "properties": {
+    "namespace": {"type": "string", "minLength": 1},
+    "serviceAccount": {"type": "string", "minLength": 1},
+    "kubeconfigPath": {"type": "string", "minLength": 1},
+    "enableIngress": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

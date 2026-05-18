@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "preflight_start",
+  "type": "object",
+  "required": ["deploymentTarget"],
+  "properties": {
+    "deploymentTarget": {"type": "string", "enum": ["kubernetes", "yarn"]},
+    "namespace": {"type": "string", "minLength": 1},
+    "serviceAccount": {"type": "string", "minLength": 1},
+    "flinkHome": {"type": "string", "minLength": 1},
+    "flinkVersion": {"type": "string"},
+    "enableIngress": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"deploymentTarget": {"const": "kubernetes"}}, "required": ["deploymentTarget"]},
+      "then": {"required": ["namespace", "serviceAccount", "flinkHome"]}
+    },
+    {
+      "if": {"properties": {"deploymentTarget": {"const": "yarn"}}, "required": ["deploymentTarget"]},
+      "then": {"required": ["flinkHome"]}
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inspect_cluster",
+  "type": "object",
+  "required": ["jobManagerUrl"],
+  "properties": {
+    "deploymentTarget": {
+      "type": "string",
+      "enum": ["kubernetes", "yarn"],
+      "description": "Optional provider context. Kubernetes enables Ingress Controller and node IP inspection when namespace is provided."
+    },
+    "namespace": {"type": "string"},
+    "jobManagerUrl": {"type": "string", "minLength": 1},
+    "jobId": {"type": "string"},
+    "httpHostHeader": {"type": "string", "description": "Optional HTTP Host header for NodePort or ingress access without DNS."},
+    "report": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

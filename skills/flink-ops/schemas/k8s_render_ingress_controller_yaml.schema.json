@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "k8s_render_ingress_controller_yaml",
+  "type": "object",
+  "required": ["namespace"],
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "description": "Kubernetes namespace for the namespace-scoped Ingress Controller."
+    }
+  },
+  "additionalProperties": false
+}

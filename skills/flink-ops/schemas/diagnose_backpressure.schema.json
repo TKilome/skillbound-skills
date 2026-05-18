@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "diagnose_backpressure",
+  "type": "object",
+  "required": ["jobManagerUrl", "jobId"],
+  "properties": {
+    "jobManagerUrl": {"type": "string", "minLength": 1},
+    "jobId": {"type": "string", "minLength": 1},
+    "vertexId": {"type": "string", "description": "Optional Flink job vertex ID. If omitted, the CLI discovers vertices from /jobs/:jobid."},
+    "httpHostHeader": {"type": "string", "description": "Optional HTTP Host header for NodePort or ingress access without DNS."},
+    "report": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_node_ips",
+  "type": "object",
+  "required": ["deploymentTarget"],
+  "properties": {
+    "deploymentTarget": {
+      "type": "string",
+      "const": "kubernetes",
+      "description": "Provider selector. get_node_ips is Kubernetes-only."
+    },
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

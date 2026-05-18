@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stop_job",
+  "type": "object",
+  "required": ["jobManagerUrl", "jobId", "stopMode"],
+  "properties": {
+    "deploymentTarget": {
+      "type": "string",
+      "enum": ["kubernetes", "yarn"],
+      "description": "Optional future provider selector. Current stop_job uses Flink REST and does not require a provider."
+    },
+    "jobManagerUrl": {"type": "string", "minLength": 1},
+    "jobId": {"type": "string", "minLength": 1},
+    "stopMode": {"type": "string", "enum": ["cancel", "savepoint", "drain"]},
+    "savepointDir": {"type": "string"},
+    "drain": {"type": "boolean"},
+    "httpHostHeader": {"type": "string", "description": "Optional HTTP Host header for NodePort or ingress access without DNS."},
+    "verify": {"type": "boolean", "description": "Read back the target job after the stop request and report whether it is no longer RUNNING."},
+    "expectedTargetLock": {"type": "string", "description": "Optional target fingerprint from a prior dry-run. Mismatch fails with TargetLockMismatch."},
+    "confirm": {"type": "boolean"},
+    "dryRun": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

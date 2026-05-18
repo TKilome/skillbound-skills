@@ -1,0 +1,27 @@
+[
+  {
+    "prompt": "Start the orders Flink job on Kubernetes namespace flink.",
+    "expected_skill": "flink-intelligent-ops"
+  },
+  {
+    "prompt": "Stop Flink job job-1 with a savepoint through JobManager REST.",
+    "expected_skill": "flink-intelligent-ops"
+  },
+  {
+    "prompt": "Diagnose why the Flink job in cluster orders is failing.",
+    "expected_skill": "flink-intelligent-ops"
+  },
+  {
+    "prompt": "巡检这个 Flink 作业并生成诊断报告。",
+    "expected_skill": "flink-intelligent-ops"
+  },
+  {
+    "prompt": "Analyze backpressure for Flink job job-1.",
+    "expected_skill": "flink-intelligent-ops"
+  },
+  {
+    "prompt": "Start a Flink job on YARN queue production.",
+    "expected_skill": "flink-intelligent-ops",
+    "expected_provider": "yarn"
+  }
+]
