@@ -1,9 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "k8s_get_node_ips",
-  "type": "object",
-  "properties": {
-    "dryRun": {"type": "boolean"}
-  },
-  "additionalProperties": false
-}

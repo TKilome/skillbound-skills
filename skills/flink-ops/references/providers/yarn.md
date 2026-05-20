@@ -28,7 +28,7 @@ configuration and calls Flink's YARN Java client APIs. It does not call external
 
 - Do not call `yarn`, `$FLINK_HOME/bin/flink`, or shell scripts as fallback.
 - Run with `"$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*"`
-  for real submission; `java -jar` cannot load Flink/YARN runtime classes.
+  for real submission.
 - `stop_job` remains a common Flink REST operation and can stop a YARN job when
   the JobManager REST URL and job ID are provided.
 - Common Flink REST reads may still be used when the user provides a

@@ -18,7 +18,8 @@ These commands require a reachable JobManager REST URL and do not require
 | `stop_job` | Common REST mutation | none | mutation |
 
 `inspect_cluster` may include Kubernetes exposure checks only when
-`--deployment-target kubernetes --namespace <ns>` is explicitly provided.
+`--deployment-target kubernetes --namespace "$K8S_NAMESPACE"` is explicitly
+provided.
 
 ### Kubernetes Provider Commands
 

@@ -1,0 +1,4 @@
+venv/
+scripts/output/
+__pycache__/
+*.pyc

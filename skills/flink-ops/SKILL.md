@@ -3,9 +3,26 @@ name: flink-ops
 description: Use when the user asks to start, stop, operate, inspect, or diagnose Apache Flink jobs, including deployment-target-specific starts and Flink REST status, exception, and checkpoint checks.
 license: Apache-2.0
 compatibility: Requires Java 8+. Provider operations may require provider runtime libraries on the classpath and credentials usable by the bundled CLI.
+envs:
+- env: SKILL_DIR
+  description: Directory containing this SKILL.md, used to locate bundled scripts, assets, and the CLI jar.
+- env: JAVA_HOME
+  description: Java runtime home used to run the bundled Flink Ops CLI.
+- env: FLINK_HOME
+  description: Flink runtime home used to load Flink client libraries for provider-specific start commands.
+- env: HADOOP_CONF_DIR
+  description: Hadoop configuration directory used by YARN provider checks and application-mode starts.
+- env: YARN_CONF_DIR
+  description: YARN configuration directory used as a fallback for YARN connectivity checks when HADOOP_CONF_DIR is not set.
+- env: KUBECONFIG_PATH
+  description: Local kubeconfig file path passed to the Kubernetes client.
+- env: K8S_NAMESPACE
+  description: Kubernetes namespace used for Flink application resources, REST Service, and Ingress checks.
+- env: K8S_SERVICE_ACCOUNT
+  description: Kubernetes ServiceAccount used by Flink JobManager and TaskManager pods.
 metadata:
   domain: aiops
-  owner: example
+  owner: flink-team
   allowed-tools: Bash Read
 ---
 
@@ -43,26 +60,13 @@ directory.
 
 Examples:
 
-- Codex global install: `$HOME/.codex/skills/flink-ops`
-- Claude Code global install: `$HOME/.claude/skills/flink-ops`
-- Project-local example: `<repo>/skills/flink-ops`
+- Codex global install: `$HOME/.codex/skills/flink-intelligent-ops`
+- Claude Code global install: `$HOME/.claude/skills/flink-intelligent-ops`
+- Project-local install: `<repo>/skills/flink-intelligent-ops`
 
 Resolve runtime dependencies from the user's input, environment, or the selected
 deployment provider reference. Do not assume a provider-specific runtime rule
 applies to every deployment target.
-
-The host platform or user must provide `JAVA_HOME` before any bundled CLI
-command is executed. Use `$JAVA_HOME/bin/java` to launch this skill. Do not
-fall back to `java` from `PATH` when `JAVA_HOME` is available or required by the
-session.
-
-`JAVA_HOME` collection is the first runtime gate. Before asking for Flink,
-Kubernetes, YARN, REST, jar, image, or mutation-confirmation parameters, check
-whether the current session already has a resolved `JAVA_HOME`. If not, ask
-only for `JAVA_HOME` and stop. Do not run `check_cli_environment`, preflight,
-read, diagnosis, build, start, or stop commands until `JAVA_HOME` is known.
-Explain that this path is used to start the bundled Java CLI. Example:
-`/Users/example/Library/Java/JavaVirtualMachines/ms-11.0.28/Contents/Home`.
 
 Common Flink REST reads use the bundled jar directly:
 
@@ -72,9 +76,8 @@ Common Flink REST reads use the bundled jar directly:
 
 Provider-specific start operations may require extra classpath entries or
 environment variables. Load the provider reference before running a provider
-start command.
-For Kubernetes start, never use `java -jar`; the Flink runtime jars must be on
-the JVM classpath.
+start command. Kubernetes start includes the Flink runtime jars on the JVM
+classpath.
 
 ```bash
 "$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:<provider-runtime-classpath>" \
@@ -84,7 +87,6 @@ the JVM classpath.
 Kubernetes start must use:
 
 ```bash
-FLINK_HOME=<user-provided Flink home>
 "$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" \
   com.skill.flinkops.FlinkOpsCli k8s_start_job [args]
 ```
@@ -93,7 +95,7 @@ FLINK_HOME=<user-provided Flink home>
 
 Common operations:
 
-- `inspect_cluster --job-manager-url <url> [--deployment-target kubernetes --namespace <ns>] [--job-id <id>] [--http-host-header <host>] [--report]`
+- `inspect_cluster --job-manager-url <url> [--deployment-target kubernetes --namespace "$K8S_NAMESPACE"] [--job-id <id>] [--http-host-header <host>] [--report]`
 - `get_job_status --job-manager-url <url> [--job-id <id>] [--http-host-header <host>]`
 - `diagnose_job --job-manager-url <url> [--job-id <id>] [--http-host-header <host>] [--report]`
 - `diagnose_backpressure --job-manager-url <url> --job-id <id> [--vertex-id <vertex>] [--http-host-header <host>] [--report]`
@@ -103,17 +105,17 @@ Common operations:
 Kubernetes provider operations use explicit `k8s_*` commands and do not require
 `--deployment-target`:
 
-- `k8s_preflight_start --namespace <ns> --service-account <sa> --flink-home <path> [--kubeconfig-path <path>] [--enable-ingress <true|false>]`
-- `k8s_check_connectivity --namespace <ns> --service-account <sa> [--kubeconfig-path <path>] [--enable-ingress <true|false>]`
+- `k8s_preflight_start --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --flink-home "$FLINK_HOME" --kubeconfig-path "$KUBECONFIG_PATH" [--enable-ingress <true|false>]`
+- `k8s_check_connectivity --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --kubeconfig-path "$KUBECONFIG_PATH" [--enable-ingress <true|false>]`
 - `yarn_check_connectivity [--hadoop-conf-dir <path>] [--yarn-queue <queue>] [--yarn-provided-lib-dirs <paths>] [--flink-dist-jar <path>]`
-- `check_cli_environment --deployment-target <kubernetes|yarn> --flink-home <path>`
-- `k8s_check_ingress_controller --namespace <ns>`
+- `"$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" check_cli_environment --deployment-target <kubernetes|yarn> --flink-home "$FLINK_HOME"`
+- `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"`
   returns namespace-scoped Ingress Controller readiness, IngressClass status,
   and the Controller Service NodePort values when the service is present.
 - `k8s_get_node_ips` returns Kubernetes node
   `InternalIP`, `ExternalIP`, and `Hostname` values for constructing agent-side
   NodePort URLs.
-- `k8s_render_ingress_controller_yaml --namespace <ns>`
+- `k8s_render_ingress_controller_yaml --namespace "$K8S_NAMESPACE"`
 
 Packaging operations:
 
@@ -170,10 +172,6 @@ Out of scope for this version:
   namespaces, REST URLs, images, providers, or jar values. Collect missing
   parameters by category. Mutations require explicit confirmation of the final
   `FlinkOpsCli` command before adding `--confirm`.
-- Eval Mode: only for explicit trigger/eval/safety/workflow validation or
-  `evals/*.jsonc` processing. Fixed placeholders may be used for classification
-  and route validation, but results must not be fabricated and safety rules
-  still apply.
 - Boundary Mode: for out-of-scope requests. Return boundary guidance only and
   do not execute a command.
 
@@ -184,11 +182,7 @@ Out of scope for this version:
   user confirmation are complete.
 - For `k8s_start_job`, the final command must use
   `"$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*"`
-  with `com.skill.flinkops.FlinkOpsCli`. Do not use
-  `"$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar"` for
-  Kubernetes start, because `java -jar` ignores the Flink runtime classpath
-  needed by Flink Java Client classes such as
-  `org.apache.flink.configuration.Configuration`.
+  with `com.skill.flinkops.FlinkOpsCli`.
 - When required parameters are missing, never ask with bare flag names only.
   Explain every requested parameter before asking the user to provide it. Use
   this format for each parameter: flag name, what it means, where the user can
@@ -197,8 +191,10 @@ Out of scope for this version:
 - Ask for only one category of parameters per user turn. Do not mix readiness
   checks, Ingress remediation choices, image packaging, start configuration, and
   mutation confirmation in the same question. For a fresh deployment request,
-  the first question may ask only for readiness inputs:
-  `--namespace`, `--service-account`, and `--flink-home`. Do not ask for
+  the first question should not ask for injected Kubernetes readiness inputs. Use
+  `--namespace "$K8S_NAMESPACE"`, `--service-account "$K8S_SERVICE_ACCOUNT"`,
+  optional `--kubeconfig-path "$KUBECONFIG_PATH"`, and
+  `--flink-home "$FLINK_HOME"` as runtime placeholders. Do not ask for
   `--name`, `--parallelism`, `--flink-image`, `--main-class`, build image
   choices, or confirmation in the first question.
 - For provider starts, first identify the target provider, then load the
@@ -243,16 +239,14 @@ Out of scope for this version:
   the same namespace, service account, Ingress setting, and runtime path, run
   the relevant `FlinkOpsCli` check again before mutation. Long conversations may
   drop earlier check results.
-- Before any environment readiness flow, confirm that `JAVA_HOME` is already
-  known in the current session. If it is missing, ask only for `JAVA_HOME` first
-  because `$JAVA_HOME/bin/java` is required to start the bundled CLI.
 - For a new deployment request, environment readiness comes before final start
   parameter collection. If the current visible context has no recent successful
-  readiness result, first collect only the user-owned fields needed for the
-  check after `JAVA_HOME` is known: `--namespace`, `--service-account`,
-  `--flink-home`, and optionally `--kubeconfig-path`. Do not ask for
-  `--enable-ingress` up front; derive it from the Ingress Controller check.
-  Run `k8s_check_ingress_controller --namespace <namespace>` first. If a controller
+  readiness result, do not collect Kubernetes readiness fields from the user. Use
+  `--namespace "$K8S_NAMESPACE"`, `--service-account "$K8S_SERVICE_ACCOUNT"`,
+  optional `--kubeconfig-path "$KUBECONFIG_PATH"`, and
+  `--flink-home "$FLINK_HOME"` because these environment variables will be injected later. Do not ask for `--enable-ingress` up front; derive it from
+  the Ingress Controller check.
+  Run `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"` first. If a controller
   exists, run `k8s_check_connectivity` and `check_cli_environment`, then
   `k8s_preflight_start` with `--enable-ingress true`. If it is missing,
   show both CLI-provided remediation options when present: `helmCommands` and
@@ -297,13 +291,13 @@ Out of scope for this version:
 
 | User intent | Command | Type |
 |-------------|---------|------|
-| Check namespace Ingress Controller and NodePort | `k8s_check_ingress_controller --namespace <ns>` | Read |
-| Check Kubernetes deployment target connectivity | `k8s_check_connectivity --namespace <ns> --service-account <sa> [--kubeconfig-path <path>] --enable-ingress <true|false>` | Read |
+| Check namespace Ingress Controller and NodePort | `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"` | Read |
+| Check Kubernetes deployment target connectivity | `k8s_check_connectivity --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress <true|false>` | Read |
 | Check YARN deployment target connectivity | `yarn_check_connectivity [--hadoop-conf-dir <path>] [--yarn-queue <queue>] [--yarn-provided-lib-dirs <paths>] [--flink-dist-jar <path>]` | Read |
-| Check CLI execution environment | `check_cli_environment --deployment-target <kubernetes|yarn> --flink-home <path>` | Read |
+| Check CLI execution environment | `"$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" check_cli_environment --deployment-target <kubernetes|yarn> --flink-home "$FLINK_HOME"` | Read |
 | Get Kubernetes node IPs | `k8s_get_node_ips` | Read |
-| Render namespace Ingress Controller YAML | `k8s_render_ingress_controller_yaml --namespace <ns>` | Read |
-| Check combined Kubernetes start readiness | `k8s_preflight_start --namespace <ns> --service-account <sa> --flink-home <path> [--kubeconfig-path <path>] --enable-ingress <true|false>` | Read |
+| Render namespace Ingress Controller YAML | `k8s_render_ingress_controller_yaml --namespace "$K8S_NAMESPACE"` | Read |
+| Check combined Kubernetes start readiness | `k8s_preflight_start --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --flink-home "$FLINK_HOME" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress <true|false>` | Read |
 | Build Flink image with local jar | `k8s_build_image --base-image <image> --local-jar <path> --target-image <image> [--target-jar-path <path>]` | Mutation |
 | Start Flink job on Kubernetes | `k8s_start_job ...` | Mutation |
 | Stop Flink job | `stop_job --job-manager-url <url> --job-id <id> --stop-mode cancel [--http-host-header <host>]` | Mutation |
@@ -334,7 +328,7 @@ Parameter explanations to use when asking the user:
 | `--name` | Flink application name. For Kubernetes this maps to `kubernetes.cluster-id`, affects the REST Service name, and generates `<name>.flink.k8s.com`. Example: `flink-example-streaming`. |
 | `--namespace` | Kubernetes namespace where the Flink application, REST Service, and generated Ingress live. It is also the expected namespace boundary for the Ingress Controller. Example: `data-flink`. |
 | `--service-account` | Kubernetes ServiceAccount used by Flink JobManager and TaskManager pods. This is not a username/password. It must already have the needed Kubernetes permissions. Example: `flink-sa`. |
-| `--kubeconfig-path` | Optional local kubeconfig file path used by the CLI to load Kubernetes credentials. If omitted, the CLI defaults to `~/.kube/config`. Provide only the path, never kubeconfig file contents. Example: `/Users/example/.kube/config`. |
+| `--kubeconfig-path` | Optional local kubeconfig file path used by the CLI to load Kubernetes credentials. If omitted, the CLI defaults to `~/.kube/config`. Provide only the path, never kubeconfig file contents. Example: `/Users/dongjiaxin/.kube/config`. |
 | `--flink-image` | Container image used to run Flink. It must contain the Flink runtime and, if using `local://`, the job jar at the referenced container path. Example: `registry.example.com/flink/orders:1.0.0`. |
 | `--jar-uri` | Job jar URI visible to the Flink container. `local://` means a path inside the Flink image/container, not a path on the agent machine. For a user-provided local jar, do not ask the user to choose this value and do not suggest Flink example paths. Derive it from the fixed build image location: `local:///opt/flink/usrlib/<local-jar-file-name>`. Example: `local:///opt/flink/usrlib/orders.jar`. |
 | `--parallelism` | Initial job parallelism. Use a positive integer. Example: `4`. |
@@ -343,30 +337,14 @@ Parameter explanations to use when asking the user:
 | `--args` | Optional application arguments passed to the Flink job main method. Example: `--env prod --date 2026-05-16`. |
 | `--dynamic-properties` | Optional comma-separated Flink configuration overrides. Example: `jobmanager.memory.process.size=1024m,taskmanager.numberOfTaskSlots=2`. |
 
-For new Kubernetes deployment requests, ask for check parameters first when no
-recent readiness result is visible:
+For new Kubernetes deployment requests, run readiness checks with injected
+environment placeholders when no recent readiness result is visible:
 
 ```text
-我需要先做环境检查，再收集完整启动参数。现在只需要这些用户侧检查参数：
+我需要先做环境检查，再收集完整启动参数。
 
-1. --namespace
-   含义：要部署 Flink 任务的 Kubernetes namespace，也是 Ingress Controller 检查的 namespace。
-   示例：data-flink
-
-2. --service-account
-   含义：Flink JobManager/TaskManager Pod 使用的 Kubernetes ServiceAccount，用于提前检查权限对象是否存在。
-   示例：flink-sa
-
-3. --flink-home
-   含义：本机 Flink 安装目录，用来检查 Kubernetes 提交所需 runtime lib。
-   示例：/Users/example/soft/flink-1.19.3
-
-4. --kubeconfig-path
-   含义：可选 Kubernetes 访问凭证文件路径。如果不提供，CLI 默认探查 ~/.kube/config。
-   示例：/Users/example/.kube/config
-   注意：只需要路径，不要提供 kubeconfig 文件内容。
-
-说明：我不会先问 --enable-ingress。会先检查 namespace 内是否已有 Ingress Controller；
+说明：`--namespace`、`--service-account`、`--kubeconfig-path` 和 `--flink-home` 的值分别固定使用 `$K8S_NAMESPACE`、`$K8S_SERVICE_ACCOUNT`、`$KUBECONFIG_PATH` 和 `$FLINK_HOME` 环境变量占位，后续环境会注入。
+我不会先问 --enable-ingress。会先检查 namespace 内是否已有 Ingress Controller；
 如果有，就按启用 Ingress 继续；如果没有，会同时展示 Helm 命令和 kubectl 路径。
 kubectl 路径会使用 skill 内置 YAML 模板，并给出 render 命令和 kubectl apply 命令。
 不创建时才降级为 --enable-ingress false。
@@ -380,27 +358,27 @@ Run the Ingress Controller check first:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_check_ingress_controller \
-  --namespace <namespace>
+  --namespace "$K8S_NAMESPACE"
 ```
 
 Then run the unified check with the derived Ingress decision:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_check_connectivity \
-  --namespace <namespace> \
-  --service-account <service-account> \
-  [--kubeconfig-path <kubeconfig-path>] \
+  --namespace "$K8S_NAMESPACE" \
+  --service-account "$K8S_SERVICE_ACCOUNT" \
+  --kubeconfig-path "$KUBECONFIG_PATH" \
   --enable-ingress <true|false>
 
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" check_cli_environment \
   --deployment-target kubernetes \
-  --flink-home <flink-home>
+  --flink-home "$FLINK_HOME"
 
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_preflight_start \
-  --namespace <namespace> \
-  --service-account <service-account> \
-  --flink-home <flink-home> \
-  [--kubeconfig-path <kubeconfig-path>] \
+  --namespace "$K8S_NAMESPACE" \
+  --service-account "$K8S_SERVICE_ACCOUNT" \
+  --flink-home "$FLINK_HOME" \
+  --kubeconfig-path "$KUBECONFIG_PATH" \
   --enable-ingress <true|false>
 ```
 
@@ -452,14 +430,14 @@ Runtime check parameters:
 
 ```text
 --deployment-target kubernetes
---flink-home <Flink home used for provider runtime checks>
+--flink-home "$FLINK_HOME"
 ```
 
 Runtime parameter explanations to use when asking the user:
 
 | Parameter | Explain before asking |
 |-----------|-----------------------|
-| `--flink-home` | Local Flink installation path used only to check whether provider runtime libraries are available on the CLI classpath. Example: `/opt/flink` or `/Users/me/flink-1.19.3`. |
+| `--flink-home` | Local Flink installation path used only to check whether provider runtime libraries are available on the CLI classpath. Example: `$FLINK_HOME`. |
 
 Runtime checks run through `k8s_preflight_start`; do not ask users to run a
 standalone local runtime diagnostic command.

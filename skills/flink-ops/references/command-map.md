@@ -14,23 +14,23 @@
 
 | Intent | Command |
 |--------|---------|
-| Check namespace-scoped Ingress Controller and NodePort | `k8s_check_ingress_controller --namespace <ns>` |
-| Check Kubernetes deployment target connectivity | `k8s_check_connectivity --namespace <ns> --service-account <sa> [--kubeconfig-path <path>] --enable-ingress <derived>` |
+| Check namespace-scoped Ingress Controller and NodePort | `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"` |
+| Check Kubernetes deployment target connectivity | `k8s_check_connectivity --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress <derived>` |
 | Check YARN deployment target connectivity | `yarn_check_connectivity [--hadoop-conf-dir <path>] [--yarn-queue <queue>] [--yarn-provided-lib-dirs <paths>] [--flink-dist-jar <path>]` |
-| Check local CLI execution environment | `check_cli_environment --deployment-target <kubernetes|yarn> --flink-home <path>` |
+| Check local CLI execution environment | `"$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" check_cli_environment --deployment-target <kubernetes|yarn> --flink-home "$FLINK_HOME"` |
 | Get Kubernetes node IPs for NodePort access | `k8s_get_node_ips` |
-| Render namespace-scoped Ingress Controller YAML | `k8s_render_ingress_controller_yaml --namespace <ns>` |
-| Check Kubernetes start environment | First run `k8s_check_ingress_controller --namespace <ns>`, derive `--enable-ingress`, run `k8s_check_connectivity`, run `check_cli_environment`, then run `k8s_preflight_start --namespace <ns> --service-account <sa> --flink-home <path> [--kubeconfig-path <path>] --enable-ingress <derived>` |
+| Render namespace-scoped Ingress Controller YAML | `k8s_render_ingress_controller_yaml --namespace "$K8S_NAMESPACE"` |
+| Check Kubernetes start environment | First run `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"`, derive `--enable-ingress`, run `k8s_check_connectivity`, run `check_cli_environment`, then run `k8s_preflight_start --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --flink-home "$FLINK_HOME" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress <derived>` |
 | Build a Flink image with a local jar | `k8s_build_image --base-image <image> --local-jar <path> --target-image <image> [--target-jar-path <container-path>]` |
 | Deploy/start/submit/run a Flink jar on Kubernetes | If no visible readiness result exists, first check Ingress Controller and run `k8s_preflight_start`; if the jar is only local, use `k8s_build_image`; then run `k8s_start_job` after confirmation |
-| Start a Flink job on Kubernetes | `k8s_start_job --name <name> --namespace <ns> --service-account <sa> --flink-image <image> --jar-uri <uri> --parallelism <n>` |
-| Start a Flink job on YARN application mode | `start_job --deployment-target yarn --name <name> --flink-home <path> --jar-uri <uri> --parallelism <n> [--yarn-queue <queue>]` |
+| Start a Flink job on Kubernetes | `k8s_start_job --name <name> --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --flink-image <image> --jar-uri <uri> --parallelism <n>` |
+| Start a Flink job on YARN application mode | `start_job --deployment-target yarn --name <name> --flink-home "$FLINK_HOME" --jar-uri <uri> --parallelism <n> [--yarn-queue <queue>]` |
 | Start without external Ingress | `k8s_start_job --enable-ingress false ...` |
 | Preview start command | Show the full command and ask for confirmation before adding `--confirm` |
 | Stop or cancel a job | `stop_job --job-manager-url <url> --job-id <id> --stop-mode cancel` |
 | Stop with savepoint | `stop_job --job-manager-url <url> --job-id <id> --stop-mode savepoint --savepoint-dir <path>` |
 | Drain stop | `stop_job --job-manager-url <url> --job-id <id> --stop-mode drain --savepoint-dir <path>` |
-| One-shot cluster/job inspection | `inspect_cluster --job-manager-url <url> [--deployment-target kubernetes --namespace <ns>] [--job-id <id>] [--http-host-header <host>] [--report]` |
+| One-shot cluster/job inspection | `inspect_cluster --job-manager-url <url> [--deployment-target kubernetes --namespace "$K8S_NAMESPACE"] [--job-id <id>] [--http-host-header <host>] [--report]` |
 | Get status through Flink REST | `get_job_status --job-manager-url <url> [--job-id <id>] [--http-host-header <host>]` |
 | Diagnose through Flink REST | `diagnose_job --job-manager-url <url> [--job-id <id>] [--http-host-header <host>] [--report]` |
 | Diagnose suspected backpressure | `diagnose_backpressure --job-manager-url <url> --job-id <id> [--vertex-id <vertex>] [--http-host-header <host>] [--report]` |
@@ -67,9 +67,8 @@ Local CLI, Java, and Flink runtime checks are exposed by
 combined Kubernetes start check. YARN runtime checks remain part of
 `preflight_start --deployment-target yarn`.
 
-Kubernetes credentials are path-only. Pass `--kubeconfig-path <path>` when the
-user provides a kubeconfig file path; otherwise the CLI uses `~/.kube/config`.
-Never read or pass kubeconfig contents.
+Kubernetes credentials are path-only. Pass injected `--kubeconfig-path
+"$KUBECONFIG_PATH"`; never ask the user to paste kubeconfig file contents.
 
 When an agent uses the Ingress Controller NodePort as the reachable endpoint,
 use `--job-manager-url http://<node-ip>:<http-nodeport>` plus

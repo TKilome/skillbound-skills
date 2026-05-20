@@ -70,7 +70,7 @@ chore/repo-cleanup
 Before opening or merging a pull request, verify:
 
 - The skill still has exactly one top-level package directory when zipped.
-- `SKILL.md` and `skill.yaml` agree on name, trigger intent, and available tools.
+- `SKILL.md` frontmatter and body agree on name, trigger intent, and available tools.
 - Mutation commands have an explicit confirmation gate.
 - Target locking and read-back verification are documented for production operations.
 - Generated build outputs, credentials, local paths, and archives are not committed.

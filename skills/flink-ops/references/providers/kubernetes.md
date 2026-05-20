@@ -9,17 +9,9 @@ Use this reference for explicit Kubernetes provider commands named `k8s_*`.
 Kubernetes start uses the bundled CLI plus Flink runtime libraries:
 
 ```bash
-SKILL_DIR=<directory containing SKILL.md>
-FLINK_HOME=<user-provided Flink home>
-
 "$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" \
   com.skill.flinkops.FlinkOpsCli k8s_start_job [args]
 ```
-
-This is not optional. `java -jar` cannot be used for Kubernetes `k8s_start_job`
-because it does not include `$FLINK_HOME/lib/*` on the JVM classpath. If the
-classpath is missing, the CLI returns `FlinkRuntimeClasspathMissing`, commonly
-for `org.apache.flink.configuration.Configuration`.
 
 Do not use these in any Kubernetes provider scenario, including discovery,
 preflight, submission, verification, logs, status, and troubleshooting:
@@ -37,7 +29,7 @@ KubernetesClusterClientFactory
   -> deployApplicationCluster
 ```
 
-Use `k8s_check_ingress_controller --namespace <namespace>` to check the
+Use `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"` to check the
 namespace-scoped Ingress Controller before starting a Flink job. This check
 decides the `--enable-ingress` value; do not ask the user for that value before
 checking. `k8s_start_job` still runs a final protective check before submission
@@ -69,33 +61,35 @@ Kubernetes Client when the agent needs a `<node-ip>` for NodePort access. Prefer
 `InternalIP` for an agent running on the cluster network; use `ExternalIP` only
 when the agent is outside that network.
 
-Use `k8s_preflight_start --namespace <namespace>
---service-account <service-account> --flink-home <path> --enable-ingress
+Use `k8s_preflight_start --namespace "$K8S_NAMESPACE"
+--service-account "$K8S_SERVICE_ACCOUNT" --flink-home "$FLINK_HOME" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress
 <derived>` for Kubernetes start readiness checks after the Ingress Controller
 decision is known. Do not run external preflight commands.
 
 Do not assume an earlier Ingress Controller or runtime check is still known if
 it is not present in the current visible conversation context. If the check
 result may have been lost during a long conversation, rerun the deployment
-readiness flow: `k8s_check_ingress_controller --namespace <namespace>`, then
+readiness flow: `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"`, then
 `k8s_preflight_start` with the derived `--enable-ingress` value. Do not substitute
 another command for deployment readiness.
 
 For a new Kubernetes deployment request, do not start by asking for all
 `k8s_start_job` parameters. Ask for only one category of parameters per user turn.
-First ask only for user-owned check inputs:
+Do not ask for injected readiness inputs. Use these environment variables for
+the readiness checks:
 
 ```text
---namespace
---service-account
---flink-home
+$K8S_NAMESPACE
+$K8S_SERVICE_ACCOUNT
+$KUBECONFIG_PATH
+$FLINK_HOME
 ```
 
-Explain each one before asking. Then run:
+Then run:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_check_ingress_controller \
-  --namespace <namespace>
+  --namespace "$K8S_NAMESPACE"
 ```
 
 Do not ask for `name`, `parallelism`, `flink-image`, `main-class`, build image
@@ -112,9 +106,10 @@ Run:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_preflight_start \
-  --namespace <namespace> \
-  --service-account <service-account> \
-  --flink-home <flink-home> \
+  --namespace "$K8S_NAMESPACE" \
+  --service-account "$K8S_SERVICE_ACCOUNT" \
+  --flink-home "$FLINK_HOME" \
+  --kubeconfig-path "$KUBECONFIG_PATH" \
   --enable-ingress <true|false>
 ```
 
@@ -124,8 +119,8 @@ user-provided local jar, derive `--jar-uri` from
 `local:///opt/flink/usrlib/<local-jar-file-name>` after `k8s_build_image`; do not
 ask the user to choose it.
 
-When showing the final start command, use the `$JAVA_HOME/bin/java -cp` form from this
-reference and the same user-provided `--flink-home` value as `FLINK_HOME`.
+When showing the final start command, use the `$JAVA_HOME/bin/java -cp` form from
+this reference and the injected `$FLINK_HOME` value.
 
 A local jar path in the user's request does not imply a local standalone Flink
 cluster. For Kubernetes deployment, treat the local path as packaging input:
@@ -139,15 +134,15 @@ Required Kubernetes parameters:
 
 ```text
 --name <kubernetes.cluster-id>
---namespace <kubernetes namespace>
---service-account <Kubernetes ServiceAccount>
+--namespace "$K8S_NAMESPACE"
+--service-account "$K8S_SERVICE_ACCOUNT"
 --flink-image <Flink image>
 ```
 
-Do not invent required Kubernetes parameters from examples unless the user has
-already provided them in the current task context. If `namespace`,
-`service-account`, `flink-image`, or `name` is missing, ask for the missing
-fields instead of running local discovery or using hidden defaults. For a
+Do not invent required Kubernetes parameters from examples. Use injected
+`namespace` and `service-account` values from `$K8S_NAMESPACE` and
+`$K8S_SERVICE_ACCOUNT`. If `flink-image` or `name` is missing, ask for the
+missing fields instead of running local discovery or using hidden defaults. For a
 user-provided local jar, do not ask for `jar-uri`; derive it from the fixed
 `/opt/flink/usrlib/<jar-file-name>` image path. Do not ask for bare flag names.
 Explain each missing parameter before asking for its value.
@@ -162,29 +157,19 @@ Use this explanation template for missing Kubernetes start parameters:
    影响：REST Service 默认是 <name>-rest，Ingress 域名是 <name>.flink.k8s.com。
    示例：flink-example-streaming
 
-2. --namespace
-   含义：Flink 任务部署到哪个 Kubernetes namespace。
-   影响：Flink 资源、REST Service、Ingress 都会在这个 namespace；本 skill 也期望 Ingress Controller 在这个 namespace 内。
-   示例：data-flink
-
-3. --service-account
-   含义：Flink JobManager/TaskManager Pod 使用的 Kubernetes ServiceAccount，不是账号密码。
-   要求：它需要已有创建和管理 Flink 相关 Kubernetes 资源的权限。
-   示例：flink-sa
-
-4. --flink-image
+2. --flink-image
    含义：运行 Flink 任务的容器镜像。
    要求：镜像里要有 Flink runtime；如果 jar-uri 使用 local://，业务 jar 也必须在这个镜像内。
    示例：registry.example.com/flink/orders:1.0.0
 
-5. --jar-uri
+3. --jar-uri
    含义：Flink 容器内可见的 job jar 路径。
    注意：local:// 是容器内路径，不是你本机路径。
    固定规则：用户提供本机 jar 时，先通过 k8s_build_image 打进镜像，默认放到 /opt/flink/usrlib/<jar文件名>。
    交互要求：不要让用户选择 jar-uri，也不要推荐 /opt/flink/examples 路径；根据本机 jar 文件名自动派生。
    示例：local:///opt/flink/usrlib/orders.jar
 
-6. --parallelism
+4. --parallelism
    含义：Flink job 初始并行度。
    示例：4
 ```
@@ -194,10 +179,7 @@ parameters:
 
 ```text
 name
-namespace
-service-account
 flink-image
-FLINK_HOME
 ```
 
 Derive `--jar-uri` from the local jar file name after `k8s_build_image`. Do not ask
@@ -213,7 +195,8 @@ maps to:
 local:///opt/flink/usrlib/orders.jar
 ```
 
-Do not submit until the user has provided or approved every required value.
+Do not submit until injected values are present and the user has provided or
+approved every required non-injected value.
 
 Common optional parameters:
 
@@ -291,7 +274,7 @@ unless the YAML is edited before apply. Query them with:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_check_ingress_controller \
-  --namespace <namespace>
+  --namespace "$K8S_NAMESPACE"
 ```
 
 The agent-facing URL is `http://<node-ip>:<http-nodeport>`. The user-facing URL
@@ -339,15 +322,15 @@ render/apply flow:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_render_ingress_controller_yaml \
-  --namespace <namespace> > /tmp/<namespace>-nginx-controller.yaml
-kubectl apply -f /tmp/<namespace>-nginx-controller.yaml
+  --namespace "$K8S_NAMESPACE" > /tmp/${K8S_NAMESPACE}-nginx-controller.yaml
+kubectl apply -f /tmp/${K8S_NAMESPACE}-nginx-controller.yaml
 ```
 
 After the user applies it, rerun:
 
 ```bash
 "$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" k8s_check_ingress_controller \
-  --namespace <namespace>
+  --namespace "$K8S_NAMESPACE"
 ```
 
 The agent must not create the YAML file, redirect command output to a YAML file,
@@ -421,14 +404,11 @@ not use `kubectl port-forward` to make it reachable.
 ## Local Jar Start Template
 
 ```bash
-SKILL_DIR=<directory containing SKILL.md>
-FLINK_HOME=<user-provided Flink home>
-
 "$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" \
   com.skill.flinkops.FlinkOpsCli k8s_start_job \
   --name <user-provided name> \
-  --namespace <user-provided namespace> \
-  --service-account <user-provided service-account> \
+  --namespace "$K8S_NAMESPACE" \
+  --service-account "$K8S_SERVICE_ACCOUNT" \
   --flink-image <user-provided flink image> \
   --jar-uri local:///opt/flink/usrlib/<local-jar-file-name> \
   --main-class <user-provided-or-confirmed-main-class> \
@@ -437,5 +417,6 @@ FLINK_HOME=<user-provided Flink home>
 ```
 
 This is a template, not default production input. Replace every
-`<user-provided ...>` placeholder, show the final command, and get explicit
-confirmation before running. Add `--confirm` only after that confirmation.
+`<user-provided ...>` placeholder while preserving injected environment
+placeholders, show the final command, and get explicit confirmation before
+running. Add `--confirm` only after that confirmation.

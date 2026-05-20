@@ -29,10 +29,11 @@ explicitly approved execution in the current conversation. The Java CLI enforces
 this and returns `SafetyCheckRequired` if the flag is missing.
 
 Kubernetes start uses Flink Java Client APIs and the active Kubernetes
-credentials. The user must provide `--name`, `--namespace`,
-`--service-account`, and `--flink-image`; the agent must not use example values
-or hidden defaults for these fields. For a user-provided local jar, `--jar-uri`
-is derived from the fixed image location
+credentials. The user must provide `--name` and `--flink-image`; the agent must
+use injected `$K8S_NAMESPACE` and `$K8S_SERVICE_ACCOUNT` for namespace and
+service account instead of asking the user for them. The agent must not use
+example values or hidden defaults for these fields. For a user-provided local
+jar, `--jar-uri` is derived from the fixed image location
 `local:///opt/flink/usrlib/<local-jar-file-name>` after `k8s_build_image`, not
 chosen by the user. The CLI maps these values to Flink `Configuration`.
 

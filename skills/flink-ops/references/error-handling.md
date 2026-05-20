@@ -29,7 +29,7 @@ Recovery:
 | `IngressControllerNotFound` | Namespace-scoped Ingress Controller is missing | Show `helmCommands`, `kubectlTemplatePath`, `kubectlManualRenderCommands`, and `kubectlManualApplyCommands` from error data when present; ask whether the user wants to create it manually; do not install it or execute the manual commands |
 | `IngressClassNotFound` | Expected namespace-specific IngressClass is missing | Ask for class setup or provide remediation |
 | `IngressCreationFailed` | Ingress create/update failed after Flink submission | Report partial failure and include known submission details |
-| `FlinkRuntimeClasspathMissing` | Provider start was run without Flink runtime jars on the JVM classpath | Rerun the final start command with `"$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" com.skill.flinkops.FlinkOpsCli ...`; do not use `java -jar` |
+| `FlinkRuntimeClasspathMissing` | Provider start was run without Flink runtime jars on the JVM classpath | Rerun the final start command with `"$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" com.skill.flinkops.FlinkOpsCli ...` |
 
 ## Provider Errors
 

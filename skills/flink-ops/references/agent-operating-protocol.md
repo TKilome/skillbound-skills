@@ -15,14 +15,9 @@ behavior.
 For Kubernetes `k8s_start_job`, the provider runtime classpath is mandatory:
 
 ```bash
-FLINK_HOME=<user-provided Flink home>
 "$JAVA_HOME/bin/java" -cp "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar:$FLINK_HOME/lib/*" \
   com.skill.flinkops.FlinkOpsCli k8s_start_job [args...]
 ```
-
-Do not run Kubernetes `k8s_start_job` with `java -jar`. `java -jar` does not add
-`$FLINK_HOME/lib/*` to the JVM classpath, so Flink Java Client classes such as
-`org.apache.flink.configuration.Configuration` will be missing.
 
 ## 2) Tool Boundary
 
@@ -56,14 +51,10 @@ parameter is missing, ask for it.
 
 ## Mode Selection
 
-Use Real Ops Mode unless the user explicitly asks for eval, trigger, safety,
-workflow, or JSONC eval processing.
+Use Real Ops Mode for supported Apache Flink operations.
 
 Use Boundary Mode when the request is outside Apache Flink operations or asks
 for unsupported external tool fallback.
-
-Use Eval Mode only for validation tasks. Eval Mode can classify placeholder
-inputs, but must not claim fabricated cluster state or bypass confirmation.
 
 ## 4) Parameter and Confirmation Strategy
 
@@ -81,30 +72,27 @@ inputs, but must not claim fabricated cluster state or bypass confirmation.
 3. For provider start, identify the target provider and load the provider
    reference. Kubernetes uses `k8s_start_job`.
    For Kubernetes, the displayed final command must use `$JAVA_HOME/bin/java -cp` with
-   `$FLINK_HOME/lib/*`; do not display or run a `java -jar ... k8s_start_job`
-   command.
+   `$FLINK_HOME/lib/*`.
 4. For a local jar that is not already inside the target Flink image, map the
    request to `k8s_build_image` first. Do not run `docker` directly. The resulting
    start `--jar-uri` is derived from the fixed image path
    `local:///opt/flink/usrlib/<local-jar-file-name>`; do not ask the user to
    choose `--jar-uri` and do not suggest `/opt/flink/examples` paths.
 5. For Kubernetes start readiness checks, map to:
-   1. `k8s_check_ingress_controller --namespace <namespace>`
-   2. `k8s_check_connectivity --namespace <namespace> --service-account <service-account> [--kubeconfig-path <path>] --enable-ingress <true|false>`
-   3. `check_cli_environment --deployment-target kubernetes --flink-home <flink-home>`
+   1. `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"`
+   2. `k8s_check_connectivity --namespace "$K8S_NAMESPACE" --service-account "$K8S_SERVICE_ACCOUNT" --kubeconfig-path "$KUBECONFIG_PATH" --enable-ingress <true|false>`
+   3. `"$JAVA_HOME/bin/java" -jar "$SKILL_DIR/scripts/target/flink-intelligent-ops.jar" check_cli_environment --deployment-target kubernetes --flink-home "$FLINK_HOME"`
    4. `k8s_preflight_start` as the combined check used immediately before start.
    Do not run external preflight commands.
    Kubernetes credentials are path-only: the agent must never inspect kubeconfig
-   contents. It may only pass a local kubeconfig file path to the CLI. If no path
-   is provided, the CLI uses `~/.kube/config`.
+   contents. Pass the injected `$KUBECONFIG_PATH` to the CLI.
 6. Do not rely on stale conversation memory for readiness. If the current
    visible context does not contain a recent successful check result for the
    same namespace, service account, Ingress setting, and runtime path, rerun the
    relevant `FlinkOpsCli` check before any mutation.
-7. For a new deployment request with no visible readiness result, collect only
-   the user-owned fields needed for checks first. Do not ask for all
-   `k8s_start_job` parameters before the environment check. For Kubernetes, collect
-   `namespace`, `service-account`, `flink-home`, and optionally `kubeconfig-path`;
+7. For a new deployment request with no visible readiness result, do not collect
+   injected readiness fields from the user. Use `$K8S_NAMESPACE`,
+   `$K8S_SERVICE_ACCOUNT`, `$KUBECONFIG_PATH`, and `$FLINK_HOME` for the checks;
    do not ask the user to choose `enable-ingress` up front.
 8. Ask for only one category of parameters per user turn. The categories are:
    readiness inputs, Ingress remediation choice, image packaging inputs, start
@@ -113,7 +101,7 @@ inputs, but must not claim fabricated cluster state or bypass confirmation.
    `parallelism`, `flink-image`, `main-class`, build image choices, or
    confirmation.
 9. For Kubernetes external access, run
-   `k8s_check_ingress_controller --namespace <namespace>` before `k8s_preflight_start`.
+   `k8s_check_ingress_controller --namespace "$K8S_NAMESPACE"` before `k8s_preflight_start`.
    If a namespace-scoped Ingress Controller exists, derive
    `--enable-ingress true`. If it is missing, show the CLI-provided remediation
    options and ask whether the user wants to create it. When the error data has
